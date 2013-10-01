@@ -347,6 +347,18 @@ class LuaClassmember(LuaObject):
                 return _('%s() (%s.%s method)') % (methname, modname, clsname)
             else:
                 return _('%s() (%s method)') % (methname, clsname)
+        elif self.objtype == 'attribute':
+            try:
+                clsname, attrname = name.rsplit('.', 1)
+            except ValueError:
+                if modname:
+                    return _('%s (in module %s)') % (name, modname)
+                else:
+                    return name
+            if modname and add_modules:
+                return _('%s (%s.%s attribute)') % (attrname, modname, clsname)
+            else:
+                return _('%s (%s attribute)') % (attrname, clsname)
         else:
             return ''
 
@@ -518,11 +530,12 @@ class LuaDomain(Domain):
     name = 'lua'
     label = 'Lua'
     object_types = {
-        'function':     ObjType(l_('function'),      'func', 'obj'),
-        'data':         ObjType(l_('data'),          'data', 'obj'),
-        'class':        ObjType(l_('class'),         'class', 'obj'),
-        'method':       ObjType(l_('method'),        'meth', 'obj'),
-        'module':       ObjType(l_('module'),        'mod', 'obj'),
+        'function':     ObjType(l_('function'),  'func',  'obj'),
+        'data':         ObjType(l_('data'),      'data',  'obj'),
+        'class':        ObjType(l_('class'),     'class', 'obj'),
+        'method':       ObjType(l_('method'),    'meth',  'obj'),
+        'attribute':    ObjType(l_('attribute'), 'attr',  'obj'),
+        'module':       ObjType(l_('module'),    'mod',   'obj'),
     }
 
     directives = {
@@ -530,6 +543,7 @@ class LuaDomain(Domain):
         'data':            LuaModulelevel,
         'class':           LuaClasslike,
         'method':          LuaClassmember,
+        'attribute':       LuaClassmember,
         'module':          LuaModule,
         'currentmodule':   LuaCurrentModule,
     }
@@ -539,6 +553,7 @@ class LuaDomain(Domain):
         'class': LuaXRefRole(),
         'const': LuaXRefRole(),
         'meth':  LuaXRefRole(fix_parens=True),
+        'attr':  LuaXRefRole(),
         'mod':   LuaXRefRole(),
     }
     initial_data = {
