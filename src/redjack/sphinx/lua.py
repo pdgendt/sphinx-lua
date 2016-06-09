@@ -151,6 +151,9 @@ class LuaObject(ObjectDescription):
         """
         return ''
 
+    def get_class_separator(self):
+        return ':'
+
     def needs_arglist(self):
         """May return true if an empty argument list is to be generated even if
         the document contains none.
@@ -172,26 +175,27 @@ class LuaObject(ObjectDescription):
         name_prefix, name, argstart, arglist, argend, retann = m.groups()
 
         # determine module and class name (if applicable), as well as full name
-        modname = self.options.get(
-            'module', self.env.temp_data.get('lua:module'))
+        modname = self.options.get('module', self.env.temp_data.get('lua:module'))
         classname = self.env.temp_data.get('lua:class')
+        sep = self.get_class_separator()
+
         if classname:
             add_module = False
             if name_prefix and name_prefix.startswith(classname):
                 fullname = name_prefix + name
                 # class name is given again in the signature
-                name_prefix = name_prefix[len(classname):].lstrip('.:')
+                name_prefix = name_prefix[len(classname):].lstrip(sep)
             elif name_prefix:
                 # class name is given in the signature, but different
                 # (shouldn't happen)
-                fullname = classname + '.' + name_prefix + name
+                fullname = classname + sep + name_prefix + name
             else:
                 # class name is not given in the signature
-                fullname = classname + ':' + name
+                fullname = classname + sep + name
         else:
             add_module = True
             if name_prefix:
-                classname = name_prefix.rstrip('.:')
+                classname = name_prefix.rstrip(sep)
                 fullname = name_prefix + name
             else:
                 classname = ''
@@ -330,23 +334,35 @@ class LuaClassmember(LuaObject):
         return self.objtype.endswith('method')
 
     def get_signature_prefix(self, sig):
-        return ''
+        if self.objtype == 'staticmethod':
+            return 'static '
+        else:
+            return ''
+
+    def get_class_separator(self):
+        if self.objtype == "attribute" or self.objtype == "staticmethod":
+            return '.'
+        else:
+            return ':'
 
     def get_index_text(self, modname, name_cls):
         name, cls = name_cls
         add_modules = self.env.config.add_module_names
-        if self.objtype == 'method':
+        if self.objtype == 'method' or self.objtype == 'staticmethod':
+            sep = self.get_class_separator()
+            type = 'method' if self.objtype == 'method' else 'static method'
+
             try:
-                clsname, methname = name.rsplit('.:', 1)
+                clsname, methname = name.rsplit(sep, 1)
             except ValueError:
                 if modname:
                     return _('%s() (in module %s)') % (name, modname)
                 else:
                     return '%s()' % name
             if modname and add_modules:
-                return _('%s() (%s.%s method)') % (methname, modname, clsname)
+                return _('%s() (%s.%s %s)') % (methname, modname, clsname, type)
             else:
-                return _('%s() (%s method)') % (methname, clsname)
+                return _('%s() (%s %s)') % (methname, clsname, type)
         elif self.objtype == 'attribute':
             try:
                 clsname, attrname = name.rsplit('.', 1)
@@ -366,7 +382,7 @@ class LuaClassmember(LuaObject):
         LuaObject.before_content(self)
         lastname = self.names and self.names[-1][1]
         if lastname and not self.env.temp_data.get('lua:class'):
-            self.env.temp_data['lua:class'] = lastname.strip('.:')
+            self.env.temp_data['lua:class'] = lastname.strip(self.get_class_separator())
             self.clsname_set = True
 
 
@@ -534,6 +550,7 @@ class LuaDomain(Domain):
         'data':         ObjType(l_('data'),      'data',  'obj'),
         'class':        ObjType(l_('class'),     'class', 'obj'),
         'method':       ObjType(l_('method'),    'meth',  'obj'),
+        'staticmethod': ObjType(l_('static method'), 'smeth',  'obj'),
         'attribute':    ObjType(l_('attribute'), 'attr',  'obj'),
         'module':       ObjType(l_('module'),    'mod',   'obj'),
     }
@@ -544,6 +561,7 @@ class LuaDomain(Domain):
         'class':           LuaClasslike,
         'method':          LuaClassmember,
         'attribute':       LuaClassmember,
+        'staticmethod':    LuaClassmember,
         'module':          LuaModule,
         'currentmodule':   LuaCurrentModule,
     }
