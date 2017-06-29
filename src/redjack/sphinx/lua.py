@@ -12,7 +12,7 @@ import re
 from docutils import nodes
 from docutils.parsers.rst import directives
 
-from sphinx import addnodes
+from sphinx import addnodes, version_info
 from sphinx.roles import XRefRole
 from sphinx.locale import l_, _
 from sphinx.domains import Domain, ObjType, Index
@@ -20,6 +20,14 @@ from sphinx.directives import ObjectDescription
 from sphinx.util.nodes import make_refnode
 from sphinx.util.compat import Directive
 from sphinx.util.docfields import Field, GroupedField, TypedField
+
+
+def _create_indexnode(indextext, fullname):
+    # See https://github.com/sphinx-doc/sphinx/issues/2673
+    if version_info < (1, 4):
+        return ('single', indextext, fullname, '')
+    else:
+        return ('single', indextext, fullname, '', None)
 
 
 # REs for Lua signatures
@@ -224,8 +232,8 @@ class LuaObject(ObjectDescription):
 
         indextext = self.get_index_text(modname, name_cls)
         if indextext:
-            self.indexnode['entries'].append(('single', indextext,
-                                              fullname, ''))
+            self.indexnode['entries'].append(
+                _create_indexnode(indextext, fullname))
 
     def before_content(self):
         # needed for automatic qualification of members (reset in subclasses)
