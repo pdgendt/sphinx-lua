@@ -304,9 +304,13 @@ class LuaClassmember(LuaObject):
 
     def get_signature_prefix(self, sig):
         if self.objtype == 'staticmethod':
-            return 'static '
+            return 'static method '
+        elif self.objtype == 'attribute':
+            return 'attribute '
         elif self.objtype == 'classmethod':
             return 'classmethod '
+        elif self.objtype == 'method':
+            return 'method '
         return ''
 
     def get_class_separator(self):
