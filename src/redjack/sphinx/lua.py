@@ -434,8 +434,8 @@ class LuaModule(Directive):
             # used in the modindex currently
             ret.append(targetnode)
             indextext = _('%s (module)') % modname
-            inode = addnodes.index(entries=[('single', indextext,
-                                             'module-' + modname, '')])
+            inode = addnodes.index(
+                entries=[_create_indexnode(indextext, 'module-' + modname)])
             ret.append(inode)
         return ret
 
